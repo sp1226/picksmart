@@ -1,0 +1,530 @@
+/* 헤더 기본 레이아웃 */
+.header {
+  background: transparent;
+  position: relative;
+}
+
+.header-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  background: white;
+  margin: 0 auto;
+  padding: 0;
+  position: relative;
+  z-index: 20;
+}
+
+/* 네비게이션 */
+.navigation {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 1rem 0;
+}
+
+/* 서브 네비게이션 */
+.sub-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.8rem 1rem;
+  position: relative;
+  z-index: 2;
+}
+
+/* 로고 */
+.logo-container {
+  font-size: 2rem;
+  margin-right: 2rem;
+  padding: 0.5rem;
+}
+
+.logo-text-pick {
+  font-weight: 800;
+  background: linear-gradient(135deg, #344e41 0%, rgba(52, 78, 65, 0.9) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logo-text-smart {
+  font-weight: 300;
+  margin-left: 2px;
+  color: #344e41;
+}
+
+/* 검색바 */
+.search-bar {
+  margin-left: auto;
+  width: 400px;
+  position: relative;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 12px 45px 12px 20px;
+  border: 2px solid rgba(52, 78, 65, 0.2);
+  border-radius: 25px;
+  font-size: 14px;
+}
+
+.search-bar button {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #344e41;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 20px;
+}
+/* 공통 아이콘 컨테이너 스타일 */
+.icon-container {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(52, 78, 65, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #344e41;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.icon-container svg {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-container:hover {
+  background: rgba(52, 78, 65, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+
+.nav-item:hover svg {
+  transform: scale(1.05);
+}
+
+
+/* 카테고리 아이콘 영역 */
+.category-tab {
+  margin-right: auto;
+  position: relative;
+  display: flex;
+  align-items: cetner;
+}
+
+.category-tab::before {
+  content: '';
+  position: absolute;
+  top: -40px;    /* 위로 10px 확장 */
+  left: -40px;   /* 왼쪽으로 10px 확장 */
+  right: -60px;  /* 오른쪽으로 10px 확장 */
+  bottom: -20px; /* 아래로 10px 확장 */
+  z-index: -1;   /* 아이콘 뒤에 위치하도록 */
+}
+
+
+
+
+/* 장바구니 아이콘 영역 */
+.cart-tab {
+  text-decoration: none;
+  color: #344e41;
+  position: relative;  /* 추가 */
+}
+
+.cart-tab::before {
+  content: '';
+  position: absolute;
+  top: -0px;
+  left: -0px;
+  right: -0px;
+  bottom: -0px;
+  z-index: 0;
+}
+
+
+
+
+
+/* 드롭다운 메뉴 위치 조정 */
+.category-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);   /* 확장된 클릭 영역 기준으로 위치 조정 */
+  left: 0;  /* 패딩만큼 보정 */
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(52, 78, 65, 0.15);
+  padding: 0.8rem;
+  min-width: 220px;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateY(-4px);
+  z-index: 1000;
+  border: 1px solid rgba(52, 78, 65, 0.08);
+}
+
+
+
+.category-tab:hover .category-dropdown {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateY(0);
+}
+
+/* 카테고리 아이템 컨테이너 */
+.category-dropdown ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+/* 카테고리 아이템 스타일 */
+.category-item {
+  padding: 0.8rem 1rem;
+  color: #344e41;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  position: relative;
+  font-weight: 500;
+}
+
+.category-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(52, 78, 65, 0.04);
+  border-radius: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: auto; /* 마우스 이벤트를 받도록 설정 */
+
+}
+
+.category-item:hover {
+  color: #1a2921;
+  padding-left: 1.2rem;
+}
+
+.category-item:hover::before {
+  opacity: 1;
+}
+
+/* 아이템 화살표 아이콘 - 1단계 */
+.category-dropdown ul li:nth-child(1) .category-item::after {
+  content: '→';
+  position: absolute;
+  right: 1rem;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.2s ease;
+  color: #344e41;
+  font-size: 1.2rem;
+  transition-delay: 0s;
+}
+
+/* 아이템 화살표 아이콘 - 2단계 */
+.category-dropdown ul li:nth-child(2) .category-item::after {
+  content: '→';
+  position: absolute;
+  right: 1rem;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.2s ease;
+  color: #344e41;
+  font-size: 1.2rem;
+  transition-delay: 0.05s;
+}
+
+/* 아이템 화살표 아이콘 - 3단계 */
+.category-dropdown ul li:nth-child(3) .category-item::after {
+  content: '→';
+  position: absolute;
+  right: 1rem;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.2s ease;
+  color: #344e41;
+  font-size: 1.2rem;
+  transition-delay: 0.1s;
+}
+
+/* 아이템 화살표 아이콘 - 4단계 */
+.category-dropdown ul li:nth-child(4) .category-item::after {
+  content: '→';
+  position: absolute;
+  right: 1rem;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.2s ease;
+  color: #344e41;
+  font-size: 1.2rem;
+  transition-delay: 0.15s;
+}
+
+/* 아이템 화살표 아이콘 - 5단계 */
+.category-dropdown ul li:nth-child(5) .category-item::after {
+  content: '→';
+  position: absolute;
+  right: 1rem;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.2s ease;
+  color: #344e41;
+  font-size: 1.2rem;
+  transition-delay: 0.2s;
+}
+
+/* 아이템 화살표 아이콘 - 6단계 */
+.category-dropdown ul li:nth-child(6) .category-item::after {
+  content: '→';
+  position: absolute;
+  right: 1rem;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: all 0.2s ease;
+  color: #344e41;
+  font-size: 1.2rem;
+  transition-delay: 0.25s;
+}
+
+/* 호버시 화살표 표시 */
+.category-item:hover::after {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* 구분선 효과 */
+.category-item:not(:last-child) {
+  position: relative;
+}
+
+.category-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    rgba(52, 78, 65, 0) 0%,
+    rgba(52, 78, 65, 0.08) 50%,
+    rgba(52, 78, 65, 0) 100%
+  );
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.category-item:hover:not(:last-child)::after {
+  opacity: 1;
+}
+
+/* 아이템 호버시 다른 아이템 투명도 조절 */
+.category-dropdown:hover .category-item {
+  opacity: 0.5;
+  transition: all 0.2s ease;
+}
+
+.category-dropdown .category-item:hover {
+  opacity: 1;
+}
+
+/* 사용자 메뉴 */
+.user-menu {
+  width: 100%;
+  margin: 0;
+  display: flex;
+  gap: 0.25rem;
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
+  padding: 0.25rem calc((100% - 1200px) / 2);
+  font-size: 0.80rem;
+}
+
+.user-menu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -50%;
+  transform: translateX(-50%); /* 중앙 정렬 */
+  width: 100vw;
+  height: 100%;
+  bottom: 0;
+  z-index: -1;
+}
+
+.user-menu span,
+.user-menu-item {
+  position: relative;
+  text-decoration: none;
+  color: #344e41;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+}
+
+/* 호버 효과 */
+.user-menu span:hover,
+.user-menu-item:hover {
+  background: rgba(52, 78, 65, 0.08);
+  transform: translateY(-1px);
+}
+
+/* 활성 상태 */
+.user-menu span:active,
+.user-menu-item:active {
+  transform: translateY(0);
+}
+
+/* 사용자 이름 강조 */
+.user-menu .user-name {
+  font-weight: 600;
+  color: #344e41;
+  padding-right: 1.8rem;
+}
+
+/* 아이콘 스타일링 */
+.user-menu .icon {
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+  width: 14px;
+  height: 14px;
+}
+
+.user-menu span:hover .icon,
+.user-menu-item:hover .icon {
+  opacity: 1;
+}
+
+.icons-group {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.favorites-tab {
+  text-decoration: none;
+  color: #344e41;
+  position: relative;
+}
+
+.favorites-tab::before {
+  content: '';
+  position: absolute;
+  top: -50px;
+  left: -60px;
+  right: -50px;
+  bottom: -20px;
+  z-index: -1;
+}
+
+.favorites-tab:hover svg {
+  stroke: #FF6B6B;  /* 하트 아이콘 호버시 빨간색으로 변경 */
+  fill: rgba(255, 107, 107, 0.1);  /* 하트 아이콘에 살짝 채우기 효과 */
+  transform: scale(1.1);
+}
+
+
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .user-menu {
+    padding: 0.4rem 1rem;
+    gap: 0.2rem;
+    font-size: 0.8rem;
+  }
+  
+  .user-menu span,
+  .user-menu-item {
+    padding: 0.25rem 0.4rem;
+  }
+  
+  .user-menu .user-name {
+    display: none;
+  }
+  
+
+
+  .user-menu .icon {
+    width: 12px;
+    height: 12px;
+  }
+
+  .icons-group {
+    gap: 0.5rem;
+  }
+
+  .icon-container {
+    width: 36px;
+    height: 36px;
+  }
+
+  .icon-container svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-menu {
+    justify-content: space-around;
+    padding: 0.3rem 0.5rem;
+  }
+  
+  .user-menu span,
+  .user-menu-item {
+    position: relative;
+    text-decoration: none;
+    color: #344e41;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    letter-spacing: -0.5px;
+    white-space: nowrap;
+    padding: 0.25rem 0.3rem;  /* 패딩도 약간 줄임 */
+  }
+  
+  
+  
+
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .search-bar {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .logo-container {
+    font-size: 1.6rem;
+  }
+}

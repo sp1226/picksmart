@@ -1,0 +1,20 @@
+.sidebar {
+    width: 200px;
+    padding: 20px;
+    background-color: #f1f1f1;
+}
+
+.category-list {
+    list-style: none;
+    padding: 0;
+}
+
+.category-list li {
+    padding: 10px 0;
+    cursor: pointer;
+}
+
+.category-list li:hover {
+    color: #ff6600;
+    font-weight: bold;
+}

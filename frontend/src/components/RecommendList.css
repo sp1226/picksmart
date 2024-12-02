@@ -1,0 +1,183 @@
+
+
+/* RecommendList.css */
+
+/* RecommendList 타이틀 */
+.recommend-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #344e41;  /* 진한 세이지 그린 */
+  text-align: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: 4rem;
+  padding-top: 0rem;
+  text-shadow: 0 2px 4px rgba(170, 200, 150, 0.2);
+  position: relative;
+  z-index: 3;
+  letter-spacing: -0.5px;
+}
+
+/* RecommendList 컨테이너 */
+.recommend-list-container {
+  position: relative;
+  width: 100%;
+  margin-top: 0vh; /* HeroBanner 아래에 위치하도록 */
+  z-index: 2;
+}
+
+/* 리스트 스타일 */
+.recommend-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  padding: 2rem 1rem;
+  width: 100%;
+  position: relative;
+  box-sizing: border-box;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(224, 224, 224, 0.05) 5%,
+    rgba(224, 224, 224, 0.07) 10%,
+    rgba(224, 224, 224, 0.09) 15%,
+    rgba(224, 224, 224, 0.11) 20%,
+    rgba(224, 224, 224, 0.13) 25%,
+    rgba(224, 224, 224, 0.14) 30%,
+    rgba(224, 224, 224, 0.15) 35%,
+    rgba(224, 224, 224, 0.16) 40%,
+    rgba(224, 224, 224, 0.17) 45%,
+    rgba(224, 224, 224, 0.18) 50%,
+    rgba(224, 224, 224, 0.19) 60%,
+    rgba(224, 224, 224, 0.20) 70%,
+    rgba(224, 224, 224, 0.18) 80%,
+    rgba(224, 224, 224, 0.15) 90%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+/* 아이템 카드 스타일 */
+.recommend-item {
+  width: 100%;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+.recommend-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.recommend-item img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: #f8f9fa;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.recommend-item h3 {
+  font-size: 0.95rem;
+  color: var(--crayon-gray-800);
+  margin: 0;
+  padding: 1rem 1rem 0.5rem;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.recommend-item p {
+  font-size: 0.9rem;
+  color: var(--crayon-gray-600);
+  margin: 0;
+  padding: 0 1rem 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.recommend-item .price {
+  font-weight: 600;
+  padding: 0 1rem 1rem;
+  margin-top: auto;
+  font-size: 1.1rem;
+}
+.product-info {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1024px) {
+  .recommend-list-container {
+    padding: 0 0.5rem;
+  }
+
+  .recommend-list {
+    padding: 1.5rem 0.5rem;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .recommend-title {
+    font-size: 2.5rem;
+    padding: 1.5rem 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .recommend-list-container {
+    margin-top: -30px;
+    padding-top: 60px;
+  }
+
+  .recommend-list-container::before {
+    top: -200px; /* 모바일에서는 더 짧게 확장 */
+  }
+
+  .recommend-title {
+    font-size: 2rem;
+    padding: 1.2rem 0;
+  }
+
+  .recommend-list {
+    padding: 1rem 0.5rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .recommend-list-container {
+    margin-top: -20px;
+    padding-top: 40px;
+  }
+
+  .recommend-title {
+    font-size: 1.5rem;
+    padding: 1rem 0;
+  }
+
+  .recommend-list {
+    padding: 1rem 0.25rem;
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,65 @@
+/* tag.css */
+.tag {
+    display: inline-flex;
+    align-items: center;
+    font-weight: 500;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+    letter-spacing: -0.3px;
+    backdrop-filter: blur(4px);
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* 카테고리별 스타일 */
+  .tag.electronics { /* 전자기기 */
+    background: rgba(59, 130, 246, 0.9);
+    color: white;
+  }
+  
+  .tag.fashion { /* 패션잡화 */
+    background: rgba(236, 72, 153, 0.9);
+    color: white;
+  }
+  
+  .tag.cosmetics { /* 화장품 */
+    background: rgba(248, 113, 113, 0.9);
+    color: white;
+  }
+  
+  .tag.books { /* 도서 */
+    background: rgba(52, 211, 153, 0.9);
+    color: white;
+  }
+  
+  .tag.sports { /* 스포츠/레저 */
+    background: rgba(245, 158, 11, 0.9);
+    color: white;
+  }
+  
+  .tag.hobbies { /* 문구/취미 */
+    background: rgba(139, 92, 246, 0.9);
+    color: white;
+  }
+  
+  /* 호버 효과 */
+  .tag:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Safari 호환성 */
+  @supports not (backdrop-filter: blur(4px)) {
+    .tag {
+      background-opacity: 0.95;
+    }
+  }
+  
+  /* 반응형 대응 */
+  @media (max-width: 768px) {
+    .tag {
+      font-size: 0.7rem;
+      padding: 4px 10px;
+    }
+  }

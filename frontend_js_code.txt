@@ -1,0 +1,2788 @@
+=== frontend/src/reportWebVitals.js ===
+const reportWebVitals = onPerfEntry => {
+  if (onPerfEntry && onPerfEntry instanceof Function) {
+    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(onPerfEntry);
+      getFID(onPerfEntry);
+      getFCP(onPerfEntry);
+      getLCP(onPerfEntry);
+      getTTFB(onPerfEntry);
+    });
+  }
+};
+
+export default reportWebVitals;
+=== frontend/src/index.js ===
+// /Users/sp/vscode/1101/my-ecommerce/src/index.js
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+import 'slick-carousel/slick/slick.css';
+import 'slick-carousel/slick/slick-theme.css';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+    <App />
+);
+reportWebVitals();
+=== frontend/src/utils/csrf.js ===
+// utils/csrf.js
+import axios from 'axios';
+
+export const fetchCSRFToken = async () => {
+  try {
+    await axios.get('http://localhost:8000/api/accounts/csrf/', {
+      withCredentials: true
+    });
+  } catch (error) {
+    console.error('CSRF 토큰 설정 실패:', error);
+  }
+};=== frontend/src/components/ProductReviews.js ===
+import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../api/axios';
+import SmartImage from './SmartImage';
+import AlertModal from './AlertModal';
+import ProductActions from './common/ProductActions';
+
+function ProductReviews() {
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    message: '',
+    type: 'success'
+  });
+
+  const navigate = useNavigate();
+
+  const removeReview = async (reviewId) => {
+    try {
+      await api.delete(`/products/user-activity/reviews/${reviewId}/`);
+      setReviews(reviews.filter(r => r.id !== reviewId));
+      setModalConfig({
+        isOpen: true,
+        message: '리뷰가 삭제되었습니다.',
+        type: 'success',
+        onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    } catch (err) {
+      setModalConfig({
+        isOpen: true,
+        message: '리뷰 삭제에 실패했습니다.',
+        type: 'error',
+        onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    }
+  };
+
+  const fetchReviews = useCallback(async (pageNum) => {
+    try {
+      const response = await api.get('/user-activity/reviews/', {
+        params: { page: pageNum, page_size: 12 }
+      });
+
+      const { results, next } = response.data;
+      setReviews(prev => pageNum === 1 ? results : [...prev, ...results]);
+      setHasMore(!!next);
+      setError(null);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        navigate('/login');
+      } else {
+        setError('리뷰를 불러오는데 실패했습니다.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate, setHasMore]);
+
+  useEffect(() => {
+    fetchReviews(page);
+  }, [page, fetchReviews]);
+
+  const StarRating = ({ rating }) => (
+    <div className="star-rating">
+      {[1, 2, 3, 4, 5].map(star => (
+        <span key={star} className={star <= rating ? 'filled' : ''}>
+          ★
+        </span>
+      ))}
+    </div>
+  );
+
+  if (loading && page === 1) return <div className="loading">로딩 중...</div>;
+  if (error) return <div className="error-message">{error}</div>;
+
+  return (
+    <div className="product-reviews-container">
+      <h2>내가 작성한 리뷰</h2>
+      {reviews.length === 0 ? (
+        <p className="empty-message">작성한 리뷰가 없습니다.</p>
+      ) : (
+        <div className="reviews-grid">
+          {reviews.map(review => (
+            <div key={review.id} className="product-card">
+              <ProductActions 
+                onRemove={() => removeReview(review.id)}
+                showCartButton={false} // 장바구니 버튼 숨김
+              />
+              <div onClick={() => navigate(`/product/${review.product.id}`)}>
+                <SmartImage product={review.product} variant="list" />
+                <div className="review-info">
+                  <h3>{review.product.title}</h3>
+                  <StarRating rating={review.rating} />
+                  <p className="review-content">{review.content}</p>
+                  <p className="review-date">
+                    {new Date(review.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <AlertModal {...modalConfig} />
+    </div>
+  );
+}
+
+export default ProductReviews;=== frontend/src/components/ViewedProducts.js ===
+// ViewedProducts.js
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../api/axios';
+import SmartImage from './SmartImage';
+import AlertModal from './AlertModal';
+import { ShoppingCart, X } from 'lucide-react';
+import ProductActions from './common/ProductActions';
+
+
+
+function ViewedProducts() {
+  const [products, setProducts] = useState([]); // 초기값을 빈 배열로 설정
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    message: '',
+    type: 'success'
+  });
+  
+  const navigate = useNavigate();
+  const observer = useRef();
+
+  const removeFromViewed = async (productId) => {
+    try {
+      // 최근 본 상품 삭제 API 호출
+      await api.delete(`/products/user-activity/viewed/${productId}/`);
+      setProducts(products.filter(p => p.id !== productId));
+      setModalConfig({
+        isOpen: true,
+        message: '최근 본 상품에서 삭제되었습니다.',
+        type: 'success',
+        onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    } catch (err) {
+      setModalConfig({
+        isOpen: true,
+        message: '삭제에 실패했습니다.',
+        type: 'error',
+        onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    }
+  };
+
+  const fetchProducts = useCallback(async (pageNum) => {
+    try {
+      const response = await api.get('/user-activity/viewed/', {
+        params: { page: pageNum, page_size: 12 }
+      });
+
+      // response.data가 undefined일 수 있으므로 안전하게 처리
+      const results = response.data?.results || [];
+      const next = response.data?.next || false;
+
+      setProducts(prev => pageNum === 1 ? results : [...prev, ...results]);
+      setHasMore(!!next);
+      setError(null);
+    } catch (err) {
+      if (err.response?.status === 401) {
+        navigate('/login');
+      } else {
+        setError('최근 본 상품을 불러오는데 실패했습니다.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  const lastElementRef = useCallback(node => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prevPage => prevPage + 1);
+      }
+    }, { rootMargin: '100px' });
+
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]);
+
+  useEffect(() => {
+    fetchProducts(page);
+  }, [page, fetchProducts]);
+
+  const sendToCart = async () => {
+    try {
+      await api.post('/cart/add_multiple/', {
+        productIds: selectedProducts
+      });
+      
+      setModalConfig({
+        isOpen: true,
+        message: '선택한 상품이 장바구니에 추가되었습니다.',
+        type: 'success',
+        onClose: () => {
+          setModalConfig(prev => ({ ...prev, isOpen: false }));
+          setSelectedProducts([]);
+        }
+      });
+    } catch (err) {
+      setModalConfig({
+        isOpen: true,
+        message: '장바구니 추가에 실패했습니다.',
+        type: 'error',
+        onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    }
+  };
+
+  const toggleSelection = (productId) => {
+    setSelectedProducts(prev =>
+      prev.includes(productId)
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  if (loading) return <div className="loading">로딩 중...</div>;
+  if (error) return <div className="error-message">{error}</div>;
+
+  return (
+    <div className="activity-list-container">
+      <h2>최근 본 상품</h2>
+      {products.length === 0 ? (
+        <p className="empty-message">최근 본 상품이 없습니다.</p>
+      ) : (
+        <div className="products-grid">
+          {products.map((product) => (
+            <div key={product.id} className="product-card">
+              <ProductActions 
+                onAddToCart={() => sendToCart(product.id)}
+                onRemove={() => removeFromViewed(product.id)}
+              />
+              <div onClick={() => navigate(`/product/${product.id}`)}>
+                <SmartImage product={product} variant="list" />
+                <div className="product-info">
+                  <h3>{product.title}</h3>
+                  <p className="price">₩{Number(product.price).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <AlertModal {...modalConfig} />
+    </div>
+  );
+}
+
+
+export default ViewedProducts;
+=== frontend/src/components/Cart.js ===
+// src/components/Cart.js
+
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
+import './Cart.css';
+import SmartImage from './SmartImage';
+import AlertModal from './AlertModal'; // AlertModal import 추가
+
+function Cart() {
+  const [cartItems, setCartItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    message: '',
+    type: 'success',
+  });
+
+  useEffect(() => {
+    fetchCartItems();
+  }, []);
+
+  const fetchCartItems = async () => {
+    try {
+      const response = await api.get('/cart/my_cart/');
+      setCartItems(Array.isArray(response.data) ? response.data : []);
+      setError(null);
+    } catch (err) {
+      setError('장바구니를 불러오는데 실패했습니다.');
+      console.error('Error fetching cart:', err);
+      setCartItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateQuantity = async (productId, newQuantity) => {
+    try {
+      setCartItems(prevItems => 
+        prevItems.map(item => 
+          item.product.id === productId 
+            ? { ...item, quantity: newQuantity }
+            : item
+        )
+      );
+
+      const response = await api.post(`/products/${productId}/update_cart_quantity/`, {
+        quantity: newQuantity
+      });
+
+      if (response.data.status !== 'success') {
+        fetchCartItems();
+        alert('수량 변경에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('Failed to update quantity:', err);
+      fetchCartItems();
+      alert('수량 변경에 실패했습니다.');
+    }
+  };
+
+  const removeFromCart = async (productId) => {
+    try {
+      await api.delete(`/cart/${productId}/remove_from_cart/`);
+      fetchCartItems();
+    } catch (err) {
+      alert('상품 삭제에 실패했습니다.');
+    }
+  };
+
+  const calculateTotal = () => {
+    return cartItems.reduce((total, item) => 
+      total + (item.product.price * item.quantity), 0
+    );
+  };
+
+  const handlePurchase = async () => {
+    try {
+        console.log("구매 시도 중...");  // 디버그 로그
+        const response = await api.post('/cart/purchase/');
+        
+        console.log("서버 응답:", response.data);  // 응답 데이터 확인
+        
+        setModalConfig({
+            isOpen: true,
+            message: `${response.data.message}\n남은 마일리지: ${Number(response.data.remaining_mileage).toLocaleString()}원`,
+            type: 'success',
+            onClose: () => {
+                setModalConfig(prev => ({ ...prev, isOpen: false }));
+                fetchCartItems();
+            }
+        });
+    } catch (err) {
+        console.error("구매 오류:", err);  // 에러 로그
+        console.error("에러 응답:", err.response?.data);  // 에러 응답 데이터
+        console.error("에러 상태:", err.response?.status);  // 에러 상태 코드
+        
+        setModalConfig({
+            isOpen: true,
+            message: err.response?.data?.error || '구매 처리 중 오류가 발생했습니다.',
+            type: 'error',
+            onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+        });
+    }
+};
+  if (loading) return <div>로딩 중...</div>;
+  if (error) return <div>{error}</div>;
+
+  return (
+    <div className="cart-container">
+      <h2>장바구니</h2>
+      {cartItems.length === 0 ? (
+        <p>장바구니가 비어있습니다.</p>
+      ) : (
+        <>
+          <div className="cart-items">
+            {cartItems.map(item => (
+              <div key={item.id} className="cart-item">
+                <div className="cart-item-image">
+                  <SmartImage 
+                    product={item.product} 
+                    variant="list"
+                    alt={item.product.title}
+                  />
+                </div>
+                <div className="item-details">
+                  <h3>{item.product.title}</h3>
+                  <p className="price">
+                    ₩{Number(item.product.price).toLocaleString()}
+                  </p>
+                </div>
+                <div className="quantity-controls">
+                  <button 
+                    className="quantity-btn"
+                    onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                    disabled={item.quantity <= 1}
+                  >
+                    －
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    value={item.quantity}
+                    onChange={(e) => {
+                      const newQuantity = parseInt(e.target.value) || 1;
+                      updateQuantity(item.product.id, newQuantity);
+                    }}
+                    className="quantity-input"
+                  />
+                  <button 
+                    className="quantity-btn"
+                    onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                  >
+                    ＋
+                  </button>
+                </div>
+                <p className="item-total">
+                  ₩{Number(item.product.price * item.quantity).toLocaleString()}
+                </p>
+                <button 
+                  className="remove-button"
+                  onClick={() => removeFromCart(item.product.id)}
+                >
+                  삭제
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="cart-summary">
+            <h3>총 결제금액</h3>
+            <div className="total-price">
+              ₩{Number(calculateTotal()).toLocaleString()}
+            </div>
+            <button 
+              className="checkout-button"
+              onClick={handlePurchase}
+            >
+              구매하기
+            </button>
+          </div>
+        </>
+      )}
+      <AlertModal {...modalConfig} />
+    </div>
+  );
+}
+
+export default Cart;=== frontend/src/components/ProductDetail.js ===
+import React, { useEffect, useState, useCallback, memo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
+import api from '../api/axios';
+import './ProductDetail.css';
+import SmartImage from './SmartImage';
+import AlertModal from './AlertModal';
+import { ChevronRight, ChevronLeft } from 'lucide-react';
+
+// Extracted Components
+const StarRating = memo(({ rating }) => (
+  <div className="review-rating" role="img" aria-label={`${rating}점`}>
+    {[1, 2, 3, 4, 5].map((star) => (
+      <span key={star} className={star <= rating ? 'filled' : 'empty'}>★</span>
+    ))}
+  </div>
+));
+
+const ReviewForm = memo(({ rating, comment, setRating, setComment, onSubmit, hasReviewed }) => (
+  <form className="review-form" onSubmit={onSubmit}>
+    <div className="rating-container">
+      <span className="rating-label">평점을 선택해주세요</span>
+      <div className="star-rating-input">
+        {[5, 4, 3, 2, 1].map((star) => (
+          <React.Fragment key={star}>
+            <input
+              type="radio"
+              id={`star${star}`}
+              name="rating"
+              value={star}
+              checked={rating === star}
+              onChange={(e) => setRating(Number(e.target.value))}
+              aria-label={`${star}점`}
+            />
+            <label htmlFor={`star${star}`} />
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+    <textarea
+      value={comment}
+      onChange={(e) => setComment(e.target.value)}
+      placeholder="이 상품에 대한 솔직한 리뷰를 남겨주세요."
+      rows={4}
+      aria-label="리뷰 내용"
+    />
+    <button type="submit" className={hasReviewed ? 'reviewed' : ''}>
+      {hasReviewed ? '리뷰 수정하기' : '리뷰 등록하기'}
+    </button>
+  </form>
+));
+
+const ReviewList = memo(({ reviews }) => (
+  <div className="reviews-list">
+    {reviews.length === 0 ? (
+      <div className="no-reviews">
+        아직 작성된 리뷰가 없습니다.<br />
+        첫 번째 리뷰를 작성해보세요!
+      </div>
+    ) : (
+      reviews.map(review => (
+        <div key={review.id} className="review-item">
+          <div className="review-header">
+            <span className="review-author">{review.user}</span>
+            <StarRating rating={review.rating} />
+            <span className="review-date">
+              {new Date(review.created_at).toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </span>
+          </div>
+          <p className="review-content">{review.content}</p>
+        </div>
+      ))
+    )}
+  </div>
+));
+
+const ProductNavigation = memo(({ prevId, nextId, onPrev, onNext }) => {
+  return (
+    <>
+      {prevId && (
+        <button 
+          className="prev-product-button"
+          onClick={onPrev}
+          aria-label="이전 상품"
+        >
+          <ChevronLeft size={24} />
+        </button>
+      )}
+      {nextId && (
+        <button 
+          className="next-product-button"
+          onClick={onNext}
+          aria-label="다음 상품"
+        >
+          <ChevronRight size={24} />
+        </button>
+      )}
+    </>
+  );
+});
+
+function ProductDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isInCart, setIsInCart] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [cartError, setCartError] = useState(null);
+  const [hasReviewed, setHasReviewed] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [reviews, setReviews] = useState([]);
+  const [prevProductId, setPrevProductId] = useState(null);
+  const [nextProductId, setNextProductId] = useState(null);
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    message: '',
+    onClose: () => {}
+  });
+
+  const showAlert = useCallback((message, callback, type = 'success') => {
+    setModalConfig({
+      isOpen: true,
+      message,
+      type,
+      onClose: () => {
+        setModalConfig(prev => ({ ...prev, isOpen: false }));
+        if (callback) callback();
+      }
+    });
+  }, []);
+
+  const logInteraction = useCallback(async (type, duration = 0) => {
+    try {
+      await api.post(`/products/${id}/log_interaction/`, { type, duration });
+    } catch (err) {
+      console.error(`Failed to log ${type}:`, err);
+    }
+  }, [id]);
+
+  const handleError = useCallback((err, defaultMessage) => {
+    console.error('Error:', err);
+    
+    // 에러 응답의 데이터 구조를 더 자세히 확인
+    const errorMsg = err.response?.data?.error || 
+                    err.response?.data?.message || 
+                    err.response?.data?.detail ||
+                    defaultMessage;
+
+    showAlert(errorMsg, null, 'error');
+    
+    // 인증 관련 에러 처리
+    if (err.response?.status === 401) {
+      showAlert('로그인이 필요한 서비스입니다.', () => {
+        navigate('/');
+      });
+    }
+  }, [navigate, showAlert]);
+
+  const fetchProduct = useCallback(async () => {
+    try {
+      const response = await api.get(`/products/${id}/`);
+      setProduct(response.data);
+      setError(null);
+    } catch (err) {
+      handleError(err, '상품 정보를 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, handleError]);
+
+  const fetchSurroundingProducts = useCallback(async () => {
+    try {
+      const response = await api.get('/products/recommendations/', {
+        params: {
+          current_id: id,
+          limit: 2
+        }
+      });
+      if (response.data && response.data.length > 0) {
+        const products = response.data;
+        const currentIndex = products.findIndex(p => p.id === parseInt(id));
+        setPrevProductId(currentIndex > 0 ? products[currentIndex - 1].id : null);
+        setNextProductId(currentIndex < products.length - 1 ? products[currentIndex + 1].id : null);
+      }
+    } catch (err) {
+      console.error('상품 정보 조회 실패:', err);
+    }
+  }, [id]);
+
+  const fetchReviews = useCallback(async () => {
+    try {
+      const response = await api.get(`/products/${id}/reviews/`);
+      setReviews(response.data);
+    } catch (err) {
+      console.error('리뷰 로딩 실패:', err);
+    }
+  }, [id]);
+
+  const checkExistingReview = useCallback(async () => {
+    try {
+      const response = await api.get(`/products/${id}/check_review/`);
+      setHasReviewed(response.data.hasReview);
+      if (response.data.hasReview) {
+        setRating(response.data.review.rating);
+        setComment(response.data.review.content);
+      }
+    } catch (err) {
+      console.error('리뷰 확인 중 에러:', err);
+    }
+  }, [id]);
+
+  const goToNextProduct = useCallback(() => {
+    if (nextProductId) {
+      navigate(`/product/${nextProductId}`);
+    }
+  }, [nextProductId, navigate]);
+
+  const goToPrevProduct = useCallback(() => {
+    if (prevProductId) {
+      navigate(`/product/${prevProductId}`);
+    }
+  }, [prevProductId, navigate]);
+
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === 'ArrowRight') {
+        goToNextProduct();
+      } else if (e.key === 'ArrowLeft') {
+        goToPrevProduct();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [goToNextProduct, goToPrevProduct]);
+
+  const handleFavoriteToggle = async (e) => {
+    e.stopPropagation();
+    await logInteraction('click');
+    try {
+      const response = await api.post(`/products/${id}/toggle_favorite/`);
+      setIsFavorite(response.data.status === 'favorited');
+      showAlert(response.data.message);
+    } catch (err) {
+      handleError(err, '찜하기 처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (isAddingToCart || isInCart) return;
+
+    try {
+      setIsAddingToCart(true);
+      setCartError(null);
+      await api.post(`/cart/add_multiple/`, {
+        productIds: [id]  // 상품 ID 배열로 전송
+    });
+
+      setIsInCart(true);
+      showAlert('상품이 장바구니에 추가되었습니다.');
+    } catch (err) {
+      const errorMessage = err.response?.status === 401
+        ? '로그인이 필요한 서비스입니다.'
+        : err.response?.data?.error || '장바구니 추가 중 오류가 발생했습니다.';
+      setCartError(errorMessage);
+      handleError(err, errorMessage);
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
+
+
+  const handleRemoveFromCart = async () => {
+    try {
+      const response = await api.delete(`/cart/${id}/remove_item/`);
+      setIsInCart(false);
+      showAlert('상품이 장바구니에서 제거되었습니다.', null, 'success');
+    } catch (err) {
+      const errorMessage = err.response?.status === 401
+        ? '로그인이 필요한 서비스입니다.'
+        : err.response?.data?.error || '장바구니에서 제거하는 중 오류가 발생했습니다.';
+      setCartError(errorMessage);
+      showAlert(errorMessage, null, 'error');
+    }
+  };
+
+
+const checkCartStatus = useCallback(async () => {
+  try {
+      const response = await api.get(`/products/${id}/check_cart/`);
+      setIsInCart(response.data.in_cart);
+  } catch (err) {
+      console.error('장바구니 상태 확인 실패:', err);
+  }
+}, [id]);  
+
+
+useEffect(() => {
+  fetchProduct();
+  fetchSurroundingProducts();
+  fetchReviews();
+  checkExistingReview();
+  checkCartStatus();  // 추가
+}, [fetchProduct, fetchSurroundingProducts, fetchReviews, checkExistingReview, checkCartStatus]);
+
+
+  const handleAddReview = async (e) => {
+    e.preventDefault();
+    await logInteraction('click');
+    
+    if (rating < 1 || rating > 5) {
+      showAlert('1-5점 사이의 평점을 선택해주세요.');
+      return;
+    }
+    
+    if (!comment.trim()) {
+      showAlert('리뷰 내용을 입력해주세요.');
+      return;
+    }
+    
+    try {
+      await api.post(`/products/${id}/add_review/`, { 
+        rating, 
+        content: comment 
+      });
+      
+      showAlert(
+        hasReviewed ? '리뷰가 수정되었습니다.' : '리뷰가 등록되었습니다.',
+        () => {
+          checkExistingReview();
+          fetchReviews();
+        }
+      );
+    } catch (err) {
+      handleError(err, '리뷰 등록 중 오류가 발생했습니다.');
+    }
+  };
+
+  if (loading) return <div>로딩 중...</div>;
+  if (error) return <div>에러: {error}</div>;
+  if (!product) return <div>상품을 찾을 수 없습니다.</div>;
+
+  return (
+    <div className="product-detail-container">
+      <h2>{product.title}</h2>
+      <div className="product-detail">
+        <div className="product-image-container">
+          <SmartImage 
+            product={product} 
+            variant="full" 
+            alt={product.title}
+          />
+          <ProductNavigation 
+            prevId={prevProductId}
+            nextId={nextProductId}
+            onPrev={goToPrevProduct}
+            onNext={goToNextProduct}
+          />
+        </div>
+        <div className="product-info">
+          <p><strong>가격:</strong> ₩{Number(product.price).toLocaleString()}</p>
+          <p><strong>테마:</strong> {product.theme}</p>
+          <p><strong>카테고리:</strong> {product.category}</p>
+          <p><strong>설명:</strong> {product.description}</p>
+          <p><strong>재고:</strong> {product.stock}</p>
+          <p><strong>평균 평점:</strong> {product.average_rating}</p>
+          <p><strong>총 조회수:</strong> {product.total_views}</p>
+
+          <button 
+            className={`favorite-button ${isFavorite ? 'active' : ''}`}
+            onClick={handleFavoriteToggle}
+            aria-label={isFavorite ? '찜취소' : '찜하기'}
+          >
+            {isFavorite ? '찜취소' : '찜하기'}
+          </button>
+
+          <button 
+            className={`cart-button ${isInCart ? 'in-cart' : ''} ${isAddingToCart ? 'loading' : ''}`}
+            onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
+            disabled={isAddingToCart}
+            aria-label={isAddingToCart ? '처리 중' : isInCart ? '장바구니에서 빼기' : '장바구니 담기'}
+          >
+            {isAddingToCart ? (
+              <span className="loading-spinner" aria-hidden="true"></span>
+            ) : isInCart ? (
+              '장바구니에서 빼기'
+            ) : (
+              '장바구니 담기'
+            )}
+          </button>
+
+          {cartError && (
+            <div className="error-message" role="alert">
+              {cartError}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="reviews-container">
+        <div className="review-form-section">
+          <h3>리뷰 작성</h3>
+          <ReviewForm
+            rating={rating}
+            comment={comment}
+            setRating={setRating}
+            setComment={setComment}
+            onSubmit={handleAddReview}
+            hasReviewed={hasReviewed}
+          />
+        </div>
+
+        <div className="reviews-list-section">
+          <h3>상품 리뷰</h3>
+          <ReviewList reviews={reviews} />
+        </div>
+
+        <AlertModal 
+          isOpen={modalConfig.isOpen}
+          message={modalConfig.message}
+          onClose={modalConfig.onClose}
+          type={modalConfig.type || 'success'}
+          aria-label={modalConfig.message}
+        />
+      </div>
+    </div>
+  );
+}
+
+StarRating.propTypes = {
+  rating: PropTypes.number.isRequired,
+};
+
+ReviewForm.propTypes = {
+  rating: PropTypes.number.isRequired,
+  comment: PropTypes.string.isRequired,
+  setRating: PropTypes.func.isRequired,
+  setComment: PropTypes.func.isRequired,
+  onSubmit: PropTypes.func.isRequired,
+  hasReviewed: PropTypes.bool.isRequired,
+};
+
+ReviewList.propTypes = {
+  reviews: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.number.isRequired,
+      user: PropTypes.string.isRequired,
+      rating: PropTypes.number.isRequired,
+      content: PropTypes.string.isRequired,
+      created_at: PropTypes.string.isRequired,
+    })
+  ).isRequired,
+};
+
+ProductNavigation.propTypes = {
+  prevId: PropTypes.number,
+  nextId: PropTypes.number,
+  onPrev: PropTypes.func.isRequired,
+  onNext: PropTypes.func.isRequired
+};
+
+export default memo(ProductDetail);=== frontend/src/components/SearchResults.js ===
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
+import api from '../api/axios';
+import './SearchResults.css';
+import SmartImage from './SmartImage';
+import { Link } from 'react-router-dom';
+
+function SearchResults() {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const location = useLocation();
+  const query = new URLSearchParams(location.search).get('query');
+
+  // fetchProducts를 useCallback으로 메모이제이션
+  const fetchProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/products/themes/');
+      const allProducts = response.data.flatMap(theme => {
+        if (theme.title.toLowerCase().includes(query.toLowerCase())) {
+          return theme.products;
+        }
+        return theme.products.filter(product => 
+          product.title.toLowerCase().includes(query.toLowerCase()) ||
+          product.description.toLowerCase().includes(query.toLowerCase())
+        );
+      });
+
+      setProducts(allProducts);
+      setError(null);
+    } catch (err) {
+      console.error('검색 결과를 가져오는데 실패했습니다:', err);
+      setError('검색 결과를 불러오는데 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  }, [query]); // query만 의존성으로 추가
+
+  // useEffect는 한 번만 사용
+  useEffect(() => {
+    if (query) {
+      fetchProducts();
+    }
+  }, [query, fetchProducts]); // 두 의존성 모두 포함
+
+  if (loading) return <div className="search-results-loading">로딩 중...</div>;
+  if (error) return <div className="search-results-error">{error}</div>;
+
+  return (
+    <div className="search-results-container">
+      <h2>"{query}" 검색 결과</h2>
+      {products.length === 0 ? (
+        <p>검색 결과가 없습니다.</p>
+      ) : (
+        <div className="products-grid">
+          {products.map((product) => (
+            <Link to={`/product/${product.id}`} key={product.id} className="product-card">
+              <SmartImage product={product} variant="list" />
+              <div className="product-info">
+                <h3>{product.title}</h3>
+                <p className="price">₩{Number(product.price).toLocaleString()}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default SearchResults;=== frontend/src/components/Sidebar.js ===
+import React from 'react';
+import './Sidebar.css';
+
+function Sidebar() {
+    return (
+        <aside className="sidebar">
+            <h3>카테고리</h3>
+            <ul className="category-list">
+                <li>과일 & 채소</li>
+                <li>신선 식품</li>
+                <li>가공 식품</li>
+                <li>음료</li>
+                <li>생활 용품</li>
+            </ul>
+        </aside>
+    );
+}
+
+export default Sidebar;=== frontend/src/components/ThemeList.js ===
+// /Users/sp/vscode/1101/my-ecommerce/src/components/ThemeList.js
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import './ThemeList.css';
+import { Link } from 'react-router-dom';
+import SmartImage from './SmartImage';
+
+  
+  const ThemeSection = ({ theme }) => {
+    const { title, products } = theme;
+    
+    return (
+      <div className="theme-section" data-category={title}>
+        {/* <h3>{title}</h3> 이 줄을 제거 */}
+        <div className="grid-container">
+          {products.map((item) => (
+            <Link to={`/product/${item.id}`} key={item.id} className="grid-item">
+              <SmartImage 
+                product={item} 
+                variant="list"
+              />
+              <div className="item-info">
+                <h4 className="item-name">{item.title}</h4>
+                <p className="item-price">
+                  {Math.floor(Number(item.price)).toLocaleString()}원
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+const ThemeList = () => {
+  const [themes, setThemes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchThemes = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/products/themes/');
+        console.log('Theme data:', response.data); // 데이터 확인용 로그
+        setThemes(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('테마 데이터를 불러오는데 실패했습니다:', err);
+        setError('테마 데이터를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchThemes();
+  }, []);
+
+  if (loading) return <div>로딩 중...</div>;
+  if (error) return <div>에러: {error}</div>;
+  if (!themes.length) return <div>표시할 테마가 없습니다.</div>;
+
+  return (
+    <div className="theme-list-container">
+      <h2 className="theme-list-title">테마별 상품</h2>
+      <div className="theme-list">
+        {themes.map((theme) => (
+          <ThemeSection key={theme.title} theme={theme} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default ThemeList;=== frontend/src/components/charts/ChartComponents.js ===
+// src/components/charts/ChartComponents.js
+import React from 'react';
+import {
+ AreaChart, Area, BarChart, Bar, LineChart, Line,
+ XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+ ResponsiveContainer
+} from 'recharts';
+
+const ChartContainer = ({ children }) => (
+ <div style={{ width: '100%', height: '100%', minHeight: 300 }}>
+   {children}
+ </div>
+);
+
+export const TimePatternChart = ({ data }) => (
+ <ChartContainer>
+   <ResponsiveContainer>
+     <AreaChart data={data || []}>
+       <CartesianGrid strokeDasharray="3 3" />
+       <XAxis dataKey="hour" />
+       <YAxis />
+       <Tooltip />
+       <Legend />
+       <Area 
+         type="monotone" 
+         dataKey="views" 
+         name="조회수" 
+         stroke="#8884d8" 
+         fill="#8884d8" 
+       />
+     </AreaChart>
+   </ResponsiveContainer>
+ </ChartContainer>
+);
+
+export const InteractionChart = ({ data }) => (
+ <ChartContainer>
+   <ResponsiveContainer>
+     <BarChart data={data || []}>
+       <CartesianGrid strokeDasharray="3 3" />
+       <XAxis dataKey="name" />
+       <YAxis />
+       <Tooltip />
+       <Bar dataKey="value" fill="#8884d8" />
+     </BarChart>
+   </ResponsiveContainer>
+ </ChartContainer>
+);
+
+export const RatingAnalysisChart = ({ data }) => (
+ <ChartContainer>
+   <ResponsiveContainer>
+     <LineChart data={data || []}>
+       <CartesianGrid strokeDasharray="3 3" />
+       <XAxis dataKey="category" />
+       <YAxis domain={[0, 5]} />
+       <Tooltip />
+       <Legend />
+       <Line 
+         type="monotone" 
+         dataKey="avg_rating" 
+         name="평균 평점" 
+         stroke="#8884d8" 
+       />
+       <Line 
+         type="monotone" 
+         dataKey="review_count" 
+         name="리뷰 수" 
+         stroke="#82ca9d" 
+       />
+     </LineChart>
+   </ResponsiveContainer>
+ </ChartContainer>
+);
+
+export const PurchasePatternChart = ({ data }) => (
+ <ChartContainer>
+   <ResponsiveContainer>
+     <BarChart data={data || []}>
+       <CartesianGrid strokeDasharray="3 3" />
+       <XAxis dataKey="month" />
+       <YAxis />
+       <Tooltip />
+       <Legend />
+       <Bar dataKey="amount" name="구매금액" fill="#8884d8" />
+     </BarChart>
+   </ResponsiveContainer>
+ </ChartContainer>
+);
+
+
+=== frontend/src/components/SmartImage.js ===
+// src/components/SmartImage.js
+import React, { useState } from 'react';
+import ImageModal from './ImageModal';
+import './SmartImage.css';
+
+const SmartImage = ({ product, variant = 'full' }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // 카테고리 매핑
+  const getCategoryDisplay = (category) => {
+    const categoryMap = {
+      '1': '전자기기',
+      '2': '패션잡화',
+      '3': '화장품',
+      '4': '도서',
+      '5': '스포츠/레저',
+      '6': '문구/취미'
+    };
+    return categoryMap[category] || category;  // 매핑된 카테고리명이 없으면 원래 값 반환
+  };
+
+  // 카테고리별 스타일 클래스 매핑
+  const getCategoryClass = (category) => {
+    const classMap = {
+      'category1': 'electronics',
+      'category2': 'fashion',
+      'category3': 'cosmetics',
+      'category4': 'books',
+      'category5': 'sports',
+      'category6': 'hobbies'
+    };
+    return classMap[category] || category;
+  };
+
+  const getImageUrl = () => {
+    const baseUrl = 'http://localhost:8000';
+    let url;
+
+    switch (variant) {
+      case 'list':
+        url = product.list_thumbnail_url || product.thumbnail_url || product.image_url || product.image;
+        break;
+      case 'thumbnail':
+        url = product.thumbnail_url || product.image_url || product.image;
+        break;
+      case 'full':
+        url = product.image_url || product.image;
+        break;
+      default:
+        url = product.image_url || product.image;
+    }
+
+    if (url && !url.startsWith('http')) {
+      return `${baseUrl}${url}`;
+    }
+    return url;
+  };
+
+  const handleImageClick = (e) => {
+    if (variant === 'full') {
+      e.preventDefault();
+      setIsModalOpen(true);
+    }
+  };
+
+  const imageUrl = getImageUrl();
+  
+  if (!imageUrl) {
+    return (
+      <div className={`product-image-placeholder ${variant}`}>
+        이미지 없음
+      </div>
+    );
+  }
+
+  const categoryDisplay = getCategoryDisplay(product.category);
+  const categoryClass = getCategoryClass(product.category);
+
+  return (
+    <div className="smart-image-wrapper">
+      <img
+        src={imageUrl}
+        alt={product.title}
+        className={`product-image ${variant} ${variant === 'full' ? 'hover-zoom' : ''}`}
+        loading="lazy"
+        onClick={variant === 'full' ? handleImageClick : undefined}
+        style={{ cursor: variant === 'full' ? 'zoom-in' : 'pointer' }}
+        onError={(e) => {
+          console.error('Image load error:', imageUrl);
+          e.target.onerror = null;
+          e.target.src = '/placeholder-image.png';
+        }}
+      />
+      {product.category && (
+        <div className="product-tag-container">
+          <span className={`tag ${categoryClass}`}>
+            {categoryDisplay}
+          </span>
+        </div>
+      )}
+      {variant === 'full' && (
+        <ImageModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          imageUrl={imageUrl}
+          title={product.title}
+        />
+      )}
+    </div>
+  );
+};
+
+export default SmartImage;=== frontend/src/components/ProductItem.js ===
+// ProductItem.js 수정
+import React from 'react';
+import { Link } from 'react-router-dom';
+import './ProductItem.css';
+
+
+function ProductItem({ product }) {
+  return (
+    <Link to={`/product/${product.id}`} className="product-item-link">
+      <div className="product-item">
+        <img 
+          src={`http://localhost:8000${product.image_url}`}
+          alt={product.title}
+        />
+        <p>₩{Number(product.price).toLocaleString()}원</p>
+      </div>
+    </Link>
+  );
+}
+
+
+export default ProductItem;=== frontend/src/components/Header.js ===
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Menu, ShoppingCart, Heart } from 'lucide-react'; // Heart 추가
+import './Header.css';
+import Login from './Login';
+import api from '../api/axios';
+import './SignUp.css';
+import SignUp from './SignUp';
+import { Link, useNavigate } from 'react-router-dom';
+import { User, Settings, LogIn, LogOut, UserPlus, HelpCircle } from 'lucide-react';
+
+function Header() {
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isSignUpModalOpen, setIsSignUpModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+
+  // 현재 테마 카테고리 정의
+  const categories = [
+    '전자기기',
+    '패션잡화',
+    '화장품',
+    '도서',
+    '스포츠/레저',
+    '문구/취미'
+  ];
+
+  useEffect(() => {
+    checkLoginStatus();
+  }, []);
+
+  const checkLoginStatus = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/api/accounts/check-login/', {
+        withCredentials: true
+      });
+      if (response.data.isAuthenticated) {
+        setIsLoggedIn(true);
+        setCurrentUser(response.data.user);
+      } else {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+      }
+    } catch (error) {
+      console.error('로그인 상태 확인 실패:', error);
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+    }
+  };
+
+  const handleLoginSuccess = (user) => {
+    setIsLoggedIn(true);
+    setCurrentUser(user);
+    setIsLoginModalOpen(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const response = await api.post('/accounts/logout/');
+      if (response.data.status === 'success') {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+      alert('로그아웃 처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleSearch = () => {
+    if (searchQuery.trim() !== '') {
+      navigate(`/search?query=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const handleCategoryClick = (category) => {
+    navigate(`/search?query=${encodeURIComponent(category)}`);
+    setIsCategoryOpen(false);
+  };
+
+  return (
+    <>
+<div className="user-menu">
+  {isLoggedIn ? (
+    <>
+      <span className="user-name">
+        <User className="icon" size={16} />
+        {currentUser?.username}님
+      </span>
+      <Link to="/mypage" className="user-menu-item">
+        <Settings className="icon" size={16} />
+        마이페이지
+      </Link>
+      <span className="divider" />
+      <span onClick={handleLogout}>
+        <LogOut className="icon" size={16} />
+        로그아웃
+      </span>
+    </>
+  ) : (
+    <>
+      <span onClick={() => setIsLoginModalOpen(true)}>
+        <LogIn className="icon" size={16} />
+        로그인
+      </span>
+      <span className="divider" />
+      <span onClick={() => setIsSignUpModalOpen(true)}>
+        <UserPlus className="icon" size={16} />
+        회원가입
+      </span>
+    </>
+  )}
+  <span className="divider" />
+  <span>
+    <HelpCircle className="icon" size={16} />
+    고객센터
+  </span>
+</div>
+
+
+      <header className="header">
+        <nav className="navigation">
+        <div className="logo-container">
+  <Link to="/" className="logo-link">
+    <div className="logo-text">
+      <span className="logo-text-pick">Pick</span>
+      <span className="logo-text-smart">Smart</span>
+    </div>
+  </Link>
+</div>
+
+          <div className="search-bar">
+            <input
+              type="text"
+              placeholder="검색어를 입력하세요"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={handleKeyPress}
+            />
+            <button onClick={handleSearch}>검색</button>
+          </div>
+        </nav>
+      </header>
+
+      <div className="sub-navigation">
+  <div 
+    className="icon-container category-tab"
+    onMouseEnter={() => setIsCategoryOpen(true)}
+    onMouseLeave={() => setIsCategoryOpen(false)}
+  >
+    <Menu size={24} />
+    {isCategoryOpen && (
+      <div className="category-dropdown">
+        <ul>
+          {categories.map((category, index) => (
+            <li 
+              key={index} 
+              className="category-item"
+              onClick={() => handleCategoryClick(category)}
+            >
+              {category}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </div>
+  
+  <div className="icons-group">
+    <Link to="/activity/favorites" className="icon-container favorites-tab">
+      <Heart size={24} />
+    </Link>
+    <Link to="/cart" className="icon-container cart-tab">
+      <ShoppingCart size={24} />
+    </Link>
+  </div>
+</div>
+
+      <Login 
+  isOpen={isLoginModalOpen} 
+  onClose={() => setIsLoginModalOpen(false)}
+  onLoginSuccess={handleLoginSuccess}
+  onSignUpClick={() => {
+    setIsLoginModalOpen(false);  // 로그인 모달 닫기
+    setIsSignUpModalOpen(true);  // 회원가입 모달 열기
+  }}
+/>
+
+      <SignUp
+        isOpen={isSignUpModalOpen}
+        onClose={() => setIsSignUpModalOpen(false)}
+        onSignUpSuccess={() => {
+          setIsSignUpModalOpen(false);
+          setIsLoginModalOpen(true);
+        }}
+      />      
+    </>
+  );
+}
+
+export default Header;=== frontend/src/components/RecommendList.js ===
+// my-ecommerce/src/components/RecommendList.js
+import React, { useState, useEffect } from 'react';
+import api from '../api/axios';
+import './RecommendList.css';
+import { Link } from 'react-router-dom';
+import SmartImage from './SmartImage';
+import Tag from './common/Tag';
+
+
+function RecommendList() {
+  const [recommendations, setRecommendations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchRecommendations();
+    const interval = setInterval(fetchRecommendations, 300000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // RecommendList.js 수정
+  const fetchRecommendations = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/products/recommendations/');
+      console.log('Recommendations Data:', response.data);  // 추가
+      setRecommendations(response.data);
+      setError(null);
+    } catch (err) {
+      setError('추천 상품을 불러오는데 실패했습니다.');
+      console.error('Failed to fetch recommendations:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProductClick = async (productId) => {
+    try {
+      const startTime = Date.now();
+      
+      await api.post(`/products/${productId}/log_interaction/`, {
+        type: 'click',
+        duration: Math.floor((Date.now() - startTime) / 1000)
+      });
+    } catch (err) {
+      console.error('Failed to log interaction:', err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="recommend-list-container">
+        <h2 className="recommend-title">당신의 Pick</h2>
+        <div className="loading">상품을 불러오는 중...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="recommend-list-container">
+        <h2 className="recommend-title">당신의 Pick</h2>
+        <div className="error">{error}</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="recommend-list-container">
+      <h2 className="recommend-title">당신의 Pick</h2>
+      <div className="recommend-list">
+        {recommendations.map((item) => (
+          <Link 
+            to={`/product/${item.id}`} 
+            key={item.id} 
+            className="recommend-item"
+          >
+            <SmartImage product={item} variant="list" />
+            <div className="product-info">
+  <h3>{item.title}</h3>
+  <p>{item.description}</p>
+  <div className="price">
+    {Math.floor(item.price).toLocaleString()}원
+  </div>
+</div>
+
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default RecommendList;=== frontend/src/components/SignUp.js ===
+// src/components/SignUp.js
+import React, { useState } from 'react';
+import axios from 'axios';
+import './SignUp.css';
+
+function SignUp({ isOpen, onClose, onSignUpSuccess }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [gender, setGender] = useState('M');
+  const [ageGroup, setAgeGroup] = useState('20');
+  const [incomeLevel, setIncomeLevel] = useState('M');
+  const [error, setError] = useState('');
+
+  const handleSignUp = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post('http://localhost:8000/api/accounts/signup/', {
+        username,
+        password,
+        gender,
+        age_group: ageGroup,
+        income_level: incomeLevel
+      }, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.data.status === 'success') {
+        setError('');
+        setUsername('');
+        setPassword('');
+        setGender('M');
+        setAgeGroup('20');
+        setIncomeLevel('M');
+        if (onSignUpSuccess) {
+          onSignUpSuccess(response.data.user);
+        }
+        if (onClose) {
+          onClose();
+        }
+        alert('회원가입이 완료되었습니다. 이제 로그인해주세요.');
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || '회원가입에 실패했습니다.');
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="signup-modal-overlay" onClick={onClose}>
+      <div className="signup-modal" onClick={e => e.stopPropagation()}>
+        <button className="close-button" onClick={onClose}>×</button>
+        
+        <div className="signup-header">
+          <h2>회원가입</h2>
+          <p className="signup-subtitle">PickSmart에 오신 것을 환영합니다.</p>
+        </div>
+
+        {error && <div className="error-message">{error}</div>}
+        
+        <form onSubmit={handleSignUp}>
+          <div className="form-group">
+            <div className="input-wrapper">
+              <label htmlFor="username">사용자명</label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="사용자명을 입력하세요"
+                required
+              />
+            </div>
+
+            <div className="input-wrapper">
+              <label htmlFor="password">비밀번호</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="비밀번호를 입력하세요"
+                required
+              />
+            </div>
+
+            <div className="input-wrapper">
+              <label htmlFor="gender">성별</label>
+              <div className="form-select">
+                <select
+                  id="gender"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                >
+                  <option value="M">남성</option>
+                  <option value="F">여성</option>
+                  <option value="O">기타</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="input-wrapper">
+              <label htmlFor="ageGroup">연령대</label>
+              <div className="form-select">
+                <select
+                  id="ageGroup"
+                  value={ageGroup}
+                  onChange={(e) => setAgeGroup(e.target.value)}
+                >
+                  <option value="10">10대</option>
+                  <option value="20">20대</option>
+                  <option value="30">30대</option>
+                  <option value="40">40대</option>
+                  <option value="50">50대 이상</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="input-wrapper">
+              <label htmlFor="incomeLevel">소득 수준</label>
+              <div className="form-select">
+                <select
+                  id="incomeLevel"
+                  value={incomeLevel}
+                  onChange={(e) => setIncomeLevel(e.target.value)}
+                >
+                  <option value="L">저소득</option>
+                  <option value="M">중소득</option>
+                  <option value="H">고소득</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" className="signup-button">
+            회원가입
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export default SignUp;=== frontend/src/components/HeroBanner.js ===
+// HeroBanner.js
+import React from 'react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation, Pagination, Autoplay } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/navigation';
+import 'swiper/css/pagination';
+import './HeroBanner.css';
+
+const banners = [
+  {
+    id: 1,
+    image: '/assets/banner-1.png',
+  },
+  {
+    id: 2,
+    image: '/assets/banner-2.png',
+  },
+  {
+    id: 3,
+    image: '/assets/banner-3.png',
+  },
+  {
+    id: 4,
+    image: '/assets/banner-4.png',
+  },
+  {
+    id: 5,
+    image: '/assets/banner-5.png',
+  },
+  {
+    id: 6,
+    image: '/assets/banner-6.png',
+  },
+  {
+    id: 7,
+    image: '/assets/banner-7.png',
+  },
+];
+
+function HeroBanner() {
+  return (
+    <div className="hero-banner">
+      <Swiper
+        modules={[Pagination, Autoplay]}
+        spaceBetween={30}
+        slidesPerView={1.5}
+        centeredSlides={true}
+        loop={true}
+        autoplay={{
+          delay: 3000,
+          disableOnInteraction: false,
+        }}
+        pagination={{ 
+          clickable: true,
+          dynamicBullets: true,
+          dynamicMainBullets: 5
+        }}
+        allowTouchMove={true}
+        slideToClickedSlide={true}
+        watchSlidesProgress={true}
+        className="banner-swiper"
+      >
+        {banners.map((banner) => (
+          <SwiperSlide key={banner.id}>
+            <div className="hero-slide">
+              <img 
+                src={banner.image} 
+                alt={banner.title}
+                className="banner-image"
+              />
+            </div>
+          </SwiperSlide>
+        ))}
+      </Swiper>
+    </div>
+  );
+}
+
+export default HeroBanner;=== frontend/src/components/common/ProductActions.js ===
+// components/common/ProductActions.js
+import React from 'react';
+import { ShoppingCart, X } from 'lucide-react';
+import './ProductActions.css';
+
+const ProductActions = ({ 
+  onAddToCart, 
+  onRemove, 
+  showCartButton = true,
+  showRemoveButton = true 
+}) => {
+  return (
+    <>
+      {showCartButton && (
+        <button
+          className="product-action-button add-to-cart"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddToCart();
+          }}
+          aria-label="장바구니에 추가"
+        >
+          <ShoppingCart size={18} />
+        </button>
+      )}
+      
+      {showRemoveButton && (
+        <button
+          className="product-action-button remove-item"
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove();
+          }}
+          aria-label="삭제"
+        >
+          <X size={18} />
+        </button>
+      )}
+    </>
+  );
+};
+
+export default ProductActions;=== frontend/src/components/common/Tag.js ===
+import React from 'react';
+import './Tag.css';
+
+const Tag = ({ text, color = 'default', size = 'medium' }) => {
+  return (
+    <span className={`tag ${color} ${size}`}>
+      {text}
+    </span>
+  );
+};
+
+export default Tag;=== frontend/src/components/Login.js ===
+import React, { useState } from 'react';
+import axios from 'axios';
+import './Login.css';
+
+function Login({ isOpen, onClose, onLoginSuccess, onSignUpClick }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post('http://localhost:8000/api/accounts/login/', {
+        username,
+        password
+      }, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (response.data.status === 'success') {
+        setError('');
+        setUsername('');
+        setPassword('');
+        if (onLoginSuccess) {
+          onLoginSuccess(response.data.user);
+        }
+        if (onClose) {
+          onClose();
+        }
+        window.location.reload();
+      }
+    } catch (error) {
+      setError('로그인에 실패했습니다. 계정명과 비밀번호를 확인해주세요.');
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="login-modal-overlay" onClick={onClose}>
+      <div className="login-modal" onClick={e => e.stopPropagation()}>
+        <button className="close-button" onClick={onClose}>×</button>
+        <div className="login-header">
+          <h2>로그인</h2>
+          <p className="login-subtitle">PickSmart에 오신 것을 환영합니다.</p>
+        </div>
+        {error && <div className="error-message">{error}</div>}
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <div className="input-wrapper">
+              <label htmlFor="username">사용자명</label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="예: male_20_low"
+              />
+            </div>
+            <div className="input-wrapper">
+              <label htmlFor="password">비밀번호</label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="비밀번호 입력"
+              />
+            </div>
+          </div>
+          <div className="button-group">
+            <button type="submit" className="login-button">로그인</button>
+            <button 
+              type="button" 
+              className="signup-link-button"
+              onClick={(e) => {
+                e.preventDefault();
+                onClose();
+                onSignUpClick();
+              }}
+            >
+              회원가입
+            </button>
+          </div>
+        </form>
+        <div className="test-accounts">
+          <h3>테스트 계정 안내</h3>
+          <div className="account-pattern-info">
+            <p>아이디 생성 규칙: <strong>성별_연령대_소득수준</strong></p>
+            <ul className="pattern-details">
+              <li>성별: male(남성), female(여성)</li>
+              <li>연령대: 10, 20, 30, 40, 50</li>
+              <li>소득수준: low(저소득), mid(중소득), high(고소득)</li>
+            </ul>
+            <p className="pattern-example">예시: male_20_low (20대 남성 저소득)</p>
+          </div>
+          
+          <div className="test-accounts-info">
+            <p>모든 계정 비밀번호: testpass123</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default Login;=== frontend/src/components/AlertModal.js ===
+import React from 'react';
+import { CheckCircle, AlertCircle, X } from 'lucide-react';
+import './AlertModal.css';
+
+const AlertModal = ({ 
+  isOpen, 
+  message, 
+  onClose, 
+  onConfirm,  // props에 추가
+  type = 'success' 
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-backdrop" onClick={onClose} />
+      <div className="modal-container" role="dialog" aria-modal="true">
+        <button
+          onClick={onClose}
+          className="modal-close-button"
+        >
+          <X size={20} />
+        </button>
+        
+        <div className="modal-content">
+          <div className="modal-icon">
+            {type === 'success' ? (
+              <div className="icon-circle success">
+                <CheckCircle className="icon" />
+              </div>
+            ) : (
+              <div className="icon-circle info">
+                <AlertCircle className="icon" />
+              </div>
+            )}
+          </div>
+          
+          <div className="modal-text">
+            <h3>{type === 'success' ? '완료' : '알림'}</h3>
+            <p>{message}</p>
+          </div>
+
+          <button
+            onClick={() => {
+              if (type === 'info' && onConfirm) {
+                onConfirm();
+              }
+              onClose();
+            }}
+            className="modal-confirm-button"
+            autoFocus
+          >
+            확인
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AlertModal;=== frontend/src/components/FavoriteProducts.js ===
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import api from '../api/axios';
+import SmartImage from './SmartImage';
+import AlertModal from './AlertModal';
+import ProductActions from './common/ProductActions';
+
+function FavoriteProducts() {
+  const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [modalConfig, setModalConfig] = useState({ 
+    isOpen: false,
+    message: '',
+    type: 'success'
+  });
+
+  const navigate = useNavigate();
+
+  const fetchFavorites = useCallback(async () => {
+    try {
+      const response = await api.get('/user-activity/favorites/');
+      setFavorites(response.data.results || []);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching favorites:', err);
+      if (err.response?.status === 401) {
+        navigate('/login');
+      } else {
+        setError('찜한 상품을 불러오는데 실패했습니다.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  const removeFavorite = async (productId) => {
+    try {
+      await api.post(`/products/${productId}/toggle_favorite/`);
+      fetchFavorites();
+    } catch (err) {
+      setModalConfig({
+        isOpen: true,
+        message: '찜하기 취소에 실패했습니다.',
+        type: 'error',
+        onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    }
+  };
+
+  const sendToCart = async (productId) => {
+    try {
+      await api.post('/cart/add_multiple/', {
+        productIds: [productId]
+      });
+      setModalConfig({
+        isOpen: true,
+        message: '장바구니에 추가되었습니다.',
+        type: 'success',
+        onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    } catch (err) {
+      setModalConfig({
+        isOpen: true,
+        message: '장바구니 추가에 실패했습니다.',
+        type: 'error',
+        onClose: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchFavorites();
+  }, [fetchFavorites]);
+
+  if (loading) return <div className="loading">로딩 중...</div>;
+  if (error) return <div className="error-message">{error}</div>;
+
+  return (
+    <div className="favorite-products-container">
+      <h2>찜한 상품</h2>
+      {favorites.length === 0 ? (
+        <p className="empty-message">찜한 상품이 없습니다.</p>
+      ) : (
+        <div className="products-grid">
+          {favorites.map(product => (
+            <div key={product.id} className="product-card">
+              <ProductActions 
+                onAddToCart={() => sendToCart(product.id)}
+                onRemove={() => removeFavorite(product.id)}
+              />
+              <div onClick={() => navigate(`/product/${product.id}`)}>
+                <SmartImage product={product} variant="list" />
+                <div className="product-info">
+                  <h3>{product.title}</h3>
+                  <p className="price">₩{Number(product.price).toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <AlertModal {...modalConfig} />
+    </div>
+  );
+}
+
+export default FavoriteProducts;=== frontend/src/components/ImageModal.js ===
+import React, { useState, useEffect } from 'react';
+import { X, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import './ImageModal.css';
+
+const ImageModal = ({ isOpen, onClose, imageUrl }) => {
+  const [scale, setScale] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+
+  // ESC 키 이벤트 핸들러 추가
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
+  const handleMouseMove = (e) => {
+    if (isDragging) {
+      setPosition({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleWheel = (e) => {
+    e.preventDefault();
+    const delta = Math.sign(e.deltaY) * -0.1;
+    setScale(prevScale => Math.min(Math.max(prevScale + delta, 0.5), 3));
+  };
+
+  const handleZoomIn = () => {
+    setScale(prevScale => Math.min(prevScale + 0.2, 3));
+  };
+
+  const handleZoomOut = () => {
+    setScale(prevScale => Math.max(prevScale - 0.2, 0.5));
+  };
+
+  const handleReset = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  return (
+    <div className="image-modal-overlay" onClick={onClose}>
+      <div className="image-modal-content" onClick={e => e.stopPropagation()}>
+        {/* Toolbar */}
+        <div className="image-modal-toolbar">
+          <div className="image-modal-tools">
+            <button className="tool-button" onClick={handleZoomIn} title="확대">
+              <ZoomIn size={20} />
+            </button>
+            <button className="tool-button" onClick={handleZoomOut} title="축소">
+              <ZoomOut size={20} />
+            </button>
+            <button className="tool-button" onClick={handleReset} title="원본 크기">
+              <RotateCcw size={20} />
+            </button>
+          </div>
+          <button className="close-button" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Image Container */}
+        <div 
+          className="image-modal-body"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+        >
+          <img
+            src={imageUrl}
+            alt="Product"
+            style={{
+              transform: `scale(${scale}) translate(${position.x}px, ${position.y}px)`,
+              cursor: isDragging ? 'grabbing' : 'grab'
+            }}
+            draggable="false"
+          />
+        </div>
+
+        {/* Scale Indicator */}
+        <div className="scale-indicator">
+          {Math.round(scale * 100)}%
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ImageModal;=== frontend/src/components/Footer.js ===
+// 
+
+import React from 'react';
+import './Footer.css';
+
+function Footer() {
+    return (
+        <footer className="footer">
+            <div className="footer-content">
+                <p>© 2024 PickSmart. All rights reserved.</p>
+                <p>고객센터: 1234-5678</p>
+            </div>
+        </footer>
+    );
+}
+
+export default Footer;=== frontend/src/components/MyPage.js ===
+// src/components/MyPage.js
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Tooltip,
+  Legend,
+} from 'chart.js'; // Import necessary Chart.js components
+import { 
+  Eye, Heart, ShoppingCart, Star, User, Clock, 
+  ShoppingBag, TrendingUp 
+} from 'lucide-react';
+import api from '../api/axios';
+import './MyPage.css';
+
+// Chart components for other analytics
+import {
+  TimePatternChart,
+  InteractionChart,
+  RatingAnalysisChart,
+  PurchasePatternChart,
+} from './charts/ChartComponents';
+
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+
+
+// Loading component
+const LoadingSpinner = () => (
+  <div className="loading-spinner">
+    <div className="spinner" />
+    <p>데이터를 불러오는 중...</p>
+  </div>
+);
+
+// Error message component
+const ErrorMessage = ({ message, onRetry }) => (
+  <div className="error-message">
+    <p>{message}</p>
+    {onRetry && <button onClick={onRetry}>다시 시도</button>}
+  </div>
+);
+
+// Stat card component
+const StatCard = ({ type, icon, label, value, onClick }) => (
+  <div 
+    className="stat-card" 
+    onClick={onClick}
+    role="listitem"
+    tabIndex={0}
+    onKeyPress={(e) => e.key === 'Enter' && onClick()}
+  >
+    <div className="stat-icon">{icon}</div>
+    <div className="stat-value">{value || 0}</div>
+    <div className="stat-label">{label}</div>
+  </div>
+);
+
+// Analytics section for other stats
+const AnalyticsSection = () => {
+  const [analytics, setAnalytics] = useState({
+    timePatterns: [],
+    interactionStats: [],
+    ratingAnalysis: [],
+    purchasePatterns: [],
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setIsLoading(true);
+        const response = await api.get('/accounts/analytics/');
+        setAnalytics(response.data);
+        setError(null);
+      } catch (err) {
+        setError('분석 데이터를 불러오는데 실패했습니다.');
+        console.error('Analytics fetch error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, []);
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage message={error} />;
+
+  return (
+    <div className="analytics-container">
+      {/* Time Pattern Chart */}
+      <div className="analytics-section">
+        <div className="section-header">
+          <Clock size={24} />
+          <h3>시간대별 쇼핑 패턴</h3>
+        </div>
+        <div style={{ height: 300 }}>
+          <TimePatternChart data={analytics.timePatterns} />
+        </div>
+      </div>
+
+      {/* Interaction Chart */}
+      <div className="analytics-section">
+        <div className="section-header">
+          <ShoppingBag size={24} />
+          <h3>상품 상호작용 분석</h3>
+        </div>
+        <div style={{ height: 300 }}>
+          <InteractionChart data={analytics.interactionStats} />
+        </div>
+      </div>
+
+      {/* Rating Analysis Chart */}
+      <div className="analytics-section">
+        <div className="section-header">
+          <Star size={24} />
+          <h3>카테고리별 평점 분석</h3>
+        </div>
+        <div style={{ height: 300 }}>
+          <RatingAnalysisChart data={analytics.ratingAnalysis} />
+        </div>
+      </div>
+
+      {/* Purchase Pattern Chart */}
+      <div className="analytics-section">
+        <div className="section-header">
+          <TrendingUp size={24} />
+          <h3>월별 구매 패턴</h3>
+        </div>
+        <div style={{ height: 300 }}>
+          <PurchasePatternChart data={analytics.purchasePatterns} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Main MyPage component
+const MyPage = () => {
+  const navigate = useNavigate();
+  const [userInfo, setUserInfo] = useState(null);
+  const [activityStats, setActivityStats] = useState(null);
+  const [categoryPreferences, setCategoryPreferences] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+
+  const fetchUserData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.get('/accounts/profile/');
+      
+      if (!response.data.is_authenticated) {
+        navigate('/');
+        return;
+      }
+
+      const { user, activity_stats, category_preferences } = response.data;
+      setUserInfo(user);
+      setActivityStats(activity_stats);
+      setCategoryPreferences(category_preferences);
+      setLastUpdated(new Date().toISOString());
+      setError(null);
+    } catch (err) {
+      setError('데이터를 불러오는데 실패했습니다.');
+      console.error('Profile fetch error:', err);
+      if (err.response?.status === 401) {
+        setTimeout(() => navigate('/'), 2000);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage message={error} onRetry={fetchUserData} />;
+  if (!userInfo) return <ErrorMessage message="사용자 정보를 찾을 수 없습니다." />;
+
+  return (
+    <div className="mypage-container">
+      {/* Profile Header */}
+      <div className="profile-header">
+        <div className="profile-header-content">
+          <div className="profile-avatar">
+            <User size={40} />
+          </div>
+          <div className="profile-info">
+            <h1>{userInfo.username}</h1>
+            <p className="user-mileage">
+              보유 마일리지: ₩{Number(userInfo.mileage).toLocaleString()}
+            </p>
+            {lastUpdated && (
+              <small>
+                마지막 업데이트: {new Date(lastUpdated).toLocaleString()}
+              </small>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Activity Stats */}
+      <div className="stats-grid">
+  <StatCard 
+    type="viewed"
+    icon={<Eye size={24} />}
+    label="상품 조회"
+    value={activityStats?.total_views}
+    onClick={() => navigate('/activity/viewed')}  // 경로 수정
+  />
+  <StatCard 
+    type="favorites"
+    icon={<Heart size={24} />}
+    label="찜한 상품"
+    value={activityStats?.favorite_count}
+    onClick={() => navigate('/activity/favorites')}  // 경로 수정
+  />
+  <StatCard 
+    type="cart"
+    icon={<ShoppingCart size={24} />}
+    label="장바구니"
+    value={activityStats?.cart_count}
+    onClick={() => navigate('/cart')}
+  />
+  <StatCard 
+    type="reviews"
+    icon={<Star size={24} />}
+    label="상품 리뷰"
+    value={activityStats?.review_count}
+    onClick={() => navigate('/activity/reviews')}  // 경로 수정
+  />
+</div>
+
+
+      {/* Category Preferences */}
+      <div className="category-preferences-section">
+        <div className="section-header">
+          <ShoppingBag size={24} />
+          <h3>카테고리별 선호도</h3>
+        </div>
+        {categoryPreferences.length > 0 ? (
+          <div style={{ height: 300 }}>
+            <Bar
+              data={{
+                labels: categoryPreferences.map((pref) => pref.category),
+                datasets: [
+                  {
+                    label: '선호도 비율',
+                    data: categoryPreferences.map((pref) => pref.score),
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1,
+                  },
+                ],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    ticks: {
+                      callback: (value) => `${value}%`,
+                    },
+                  },
+                },
+                plugins: {
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => `${context.raw}%`,
+                    },
+                  },
+                },
+              }}
+            />
+          </div>
+        ) : (
+          <p>데이터 없음</p>
+        )}
+      </div>
+
+      {/* Analytics Section */}
+      <AnalyticsSection />
+    </div>
+  );
+};
+
+export default React.memo(MyPage);
+=== frontend/src/App.test.js ===
+import { render, screen } from '@testing-library/react';
+import App from './App';
+
+test('renders learn react link', () => {
+  render(<App />);
+  const linkElement = screen.getByText(/learn react/i);
+  expect(linkElement).toBeInTheDocument();
+});
+=== frontend/src/api/axios.js ===
+// api/axios.js
+import axios from 'axios';
+
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      cookie = cookie.trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+const api = axios.create({
+  baseURL: 'http://localhost:8000/api',
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
+
+api.interceptors.request.use((config) => {
+  // 모든 요청에 CSRF 토큰을 포함시킴
+  const csrfToken = getCookie('csrftoken');
+  if (csrfToken) {
+    config.headers['X-CSRFToken'] = csrfToken;
+  }
+  return config;
+});
+
+export default api;
+=== frontend/src/setupTests.js ===
+// jest-dom adds custom jest matchers for asserting on DOM nodes.
+// allows you to do things like:
+// expect(element).toHaveTextContent(/react/i)
+// learn more: https://github.com/testing-library/jest-dom
+import '@testing-library/jest-dom';
+=== frontend/src/App.js ===
+/* App.js */
+
+import React, { useEffect } from 'react';
+import { fetchCSRFToken } from './utils/csrf';
+import './App.css';
+
+import Header from './components/Header';
+import HeroBanner from './components/HeroBanner';
+import RecommendList from './components/RecommendList';
+import Footer from './components/Footer';
+import ThemeList from './components/ThemeList';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import SearchResults from './components/SearchResults'; 
+import MyPage from './components/MyPage';
+import ProductDetail from './components/ProductDetail';
+import Cart from './components/Cart';
+import ViewedProducts from './components/ViewedProducts';
+import FavoriteProducts from './components/FavoriteProducts';
+import ProductReviews from './components/ProductReviews';
+
+
+const MainPage = () => (
+  <>
+    <div className="section">
+      <RecommendList />
+    </div>
+    <div className="section">
+      <ThemeList />
+    </div>
+  </>
+);
+
+function App() {
+  useEffect(() => {
+    fetchCSRFToken();
+  }, []);
+
+  return (
+    <Router>
+      <div className="App">
+        <div className="header-wrapper">
+          <div className="container">
+            <Header />
+          </div>
+        </div>
+        <div className="hero-banner">
+          <HeroBanner />
+        </div>
+        <div className="container">
+          <Routes>
+            <Route path="/" element={<MainPage />} />
+            <Route path="/search" element={<SearchResults />} />
+            <Route path="/mypage" element={<MyPage />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            {/* activity 라우트 수정 */}
+            <Route path="/activity/viewed" element={<ViewedProducts />} />
+            <Route path="/activity/favorites" element={<FavoriteProducts />} />
+            <Route path="/activity/reviews" element={<ProductReviews />} />
+            <Route path="/cart" element={<Cart />} />
+          {/* ... 다른 라우트들 ... */}            {/* favorites 라우트 추가 */}
+          </Routes>
+        </div>
+        <Footer />
+      </div>
+    </Router>
+  );
+}
+
+export default App;

@@ -1,0 +1,49 @@
+/* components/common/ProductActions.css */
+.product-action-button {
+  position: absolute;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.95);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  color: #344e41;
+  z-index: 2;
+  transform: translateY(10px);
+}
+
+.product-card:hover .product-action-button {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.add-to-cart {
+  top: 12px;
+  left: 12px;
+}
+
+.remove-item {
+  top: 12px;
+  right: 12px;
+}
+
+.product-action-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.add-to-cart:hover {
+  background: #344e41;
+  color: white;
+}
+
+.remove-item:hover {
+  background: #ff6b6b;
+  color: white;
+}

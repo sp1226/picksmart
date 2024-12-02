@@ -1,0 +1,58 @@
+# 명령어 모음
+
+find backend -type f -name "*.py" -not -path "*/venv/*" -not -path "*/migrations/*" -not -path "*/__pycache__/*" -not -path "*/.git/*" -exec echo "=== {} ===" \; -exec cat {} \; > backend_custom_code.txt
+find frontend -type f -name "*.js" -not -path "*/node_modules/*" -not -path "*/build/*" -not -path "*/dist/*" -not -path "*/.git/*" -not -path "*/public/*" -exec echo "=== {} ===" \; -exec cat {} \; > frontend_js_code.txt
+pg_dump -U ecommerce_user -d ecommerce_db --schema-only > schema.sql
+
+
+# docker 추출
+
+find . -type f \( -name "Dockerfile" -o -name "docker-compose*.yml" \) -not -path "*/node_modules/*" -not -path "*/venv/*" -not -path "*/.git/*" -exec cat {} \; > docker_config.txt
+
+
+# css임
+find frontend -type f -name "*.css" -not -path "*/node_modules/*" -not -path "*/build/*" -not -path "*/dist/*" -not -path "*/.git/*" -not -path "*/public/*" -exec echo "=== {} ===" \; -exec cat {} \; > css_custom_code.txt
+
+
+- 백엔드
+
+cd /Users/sp/vscode/1101
+find backend -type f -name "*.py" \
+  -not -path "*/venv/*" \
+  -not -path "*/migrations/*" \
+  -not -path "*/__pycache__/*" \
+  -not -path "*/.git/*" \
+  -exec echo "=== {} ===" \; -exec cat {} \; > backend_custom_code.txt
+
+
+
+
+- 프론트엔드(js)
+
+find my-ecommerce -type f -name "*.js" \
+  -not -path "*/node_modules/*" \
+  -not -path "*/build/*" \
+  -not -path "*/dist/*" \
+  -not -path "*/.git/*" \
+  -not -path "*/public/*" \
+  -exec echo "=== {} ===" \; -exec cat {} \; > frontend_js_code.txt
+
+
+
+
+- 데이터 베이스(스키마)
+
+pg_dump -U ecommerce_user -d ecommerce_db --schema-only > schema.sql
+
+
+
+
+
+- 프론트엔드(css)
+find my-ecommerce -type f -name "*.css" \
+  -not -path "*/node_modules/*" \
+  -not -path "*/build/*" \
+  -not -path "*/dist/*" \
+  -not -path "*/.git/*" \
+  -not -path "*/public/*" \
+  -exec echo "=== {} ===" \; -exec cat {} \; > css_custom_code.txt

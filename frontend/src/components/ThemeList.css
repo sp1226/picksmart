@@ -1,0 +1,206 @@
+/* ThemeList 타이틀 */
+.theme-list-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* color: rgb(140, 170, 120); */
+  color: #344e41;  /* 진한 세이지 그린 */
+  text-align: center;
+  width: 100%;
+  max-width: 1200px;  
+  padding-bottom: 2rem;  /* 아래쪽만 4rem */
+  padding-top: 4rem;     /* 위쪽은 2rem 유지 */
+  text-shadow: 0 2px 4px rgba(170, 200, 150, 0.2);
+  position: relative;
+  letter-spacing: -0.5px;
+}
+
+/* 컨테이너 스타일 */
+.theme-list-container {
+  width: 100%;
+  max-width: 1200px;
+  position: relative;
+  padding: 0 1rem;
+  box-sizing: border-box;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(224, 224, 224, 0.05) 5%,
+    rgba(224, 224, 224, 0.07) 10%,
+    rgba(224, 224, 224, 0.09) 15%,
+    rgba(224, 224, 224, 0.11) 20%,
+    rgba(224, 224, 224, 0.13) 25%,
+    rgba(224, 224, 224, 0.14) 30%,
+    rgba(224, 224, 224, 0.15) 35%,
+    rgba(224, 224, 224, 0.16) 40%,
+    rgba(224, 224, 224, 0.17) 45%,
+    rgba(224, 224, 224, 0.18) 50%,
+    rgba(224, 224, 224, 0.19) 60%,
+    rgba(224, 224, 224, 0.20) 70%,
+    rgba(224, 224, 224, 0.18) 80%,
+    rgba(224, 224, 224, 0.15) 90%,
+    rgba(255, 255, 255, 0) 100%
+);
+
+  overflow: hidden;
+}
+
+/* 테마 섹션의 hover 효과도 실버 톤으로 수정 */
+.theme-section:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(180, 180, 180, 0.2);
+}
+/* 리스트 스타일 */
+.theme-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  padding: 2rem 1rem;
+  width: 100%;
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* 테마 섹션 스타일 */
+.theme-section {
+  background: white;
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.theme-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    170deg,
+    var(--gradient-start-color) 0%,
+    var(--gradient-mid-color) 10%,
+    var(--gradient-light-mid-color) 20%,
+    var(--gradient-end-color) 40%,
+    transparent 60%
+  );
+}
+
+
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.grid-item {
+  width: 100%;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  text-decoration: none;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+.grid-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.item-info {
+  padding: 1rem;
+  background: white;
+}
+
+.item-name {
+  font-size: 0.95rem;
+  color: var(--crayon-gray-800);
+  margin: 0 0 0.5rem 0;
+  font-weight: 500;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.item-price {
+  font-size: 1.1rem;
+  color: var(--crayon-gray-900);
+  font-weight: 600;
+  margin: 0;
+}
+
+/* 호버 효과 */
+.theme-section:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.theme-section:hover::before {
+  opacity: 1.1;
+  transition: opacity 0.3s ease;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1024px) {
+  .theme-list-container {
+    padding: 0 0.5rem;
+  }
+
+  .theme-list {
+    padding: 1.5rem 0.5rem;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .theme-list-title {
+    font-size: 2rem;
+    padding: 1.5rem 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .theme-list-title {
+    font-size: 1.8rem;
+    padding: 1.2rem 0;
+  }
+
+  .theme-list {
+    padding: 1rem 0.5rem;
+    grid-template-columns: 1fr;
+  }
+
+  .grid-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .theme-list-container {
+    padding: 0 0.5rem;
+    border-radius: 12px;
+  }
+
+  .theme-list-title {
+    font-size: 1.5rem;
+    padding: 1rem 0;
+  }
+
+  .theme-list {
+    padding: 1rem 0.25rem;
+    grid-template-columns: 1fr;
+  }
+}

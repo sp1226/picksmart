@@ -1,0 +1,381 @@
+/* 전역 변수 */
+:root {
+  --max-content-width: 1200px;
+  --content-padding: 1rem;
+  --primary-rgb: 255, 107, 107;
+  --secondary-rgb: 78, 205, 196;
+  --accent-rgb: 255, 230, 109;
+  --gradient-start: rgba(var(--primary-rgb), 1);
+  --gradient-mid: rgba(var(--primary-rgb), 0.8);
+  --gradient-end: rgba(var(--primary-rgb), 0);
+  --header-gradient: linear-gradient(
+    to bottom,
+    rgba(255, 107, 107, 1) 0%,
+    rgba(255, 107, 107, 0.95) 40%,
+    rgba(255, 107, 107, 0.9) 60%,
+    rgba(255, 107, 107, 0.85) 80%,
+    rgba(255, 107, 107, 0.8) 100%
+  );
+}
+
+/* 기본 레이아웃 */
+.app {
+  width: 100%;
+  max-width: 1168px;
+  margin: 0 auto;
+  padding: 0;
+  box-sizing: border-box;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden; /* 가로 스크롤 방지 */
+}
+
+.app::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 10% 20%, var(--crayon-primary) 0%, transparent 20%),
+    radial-gradient(circle at 90% 80%, var(--crayon-secondary) 0%, transparent 20%),
+    radial-gradient(circle at 50% 50%, var(--crayon-accent) 0%, transparent 25%);
+  opacity: 0.05;
+  z-index: -1;
+}
+
+/* 컨텐츠 컨테이너 */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--content-padding);
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* 헤더 영역 */
+.header-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  background: var(--header-gradient);
+  position: relative;
+  z-index: 20;
+  margin: 0 auto;
+  padding: 0;
+  margin-bottom: -1px; /* 이 줄 추가 */
+}
+
+.header-background {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  background: var(--header-gradient);
+}
+
+.header {
+  background: transparent;
+  position: relative;
+  box-shadow: none;
+}
+
+/* 네비게이션 */
+.navigation {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 1rem 0;
+}
+
+/* 유저 메뉴 */
+.user-menu {
+  width: 100%;
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  padding: 0.5rem var(--content-padding);
+  display: flex;
+  gap: 1.5rem;
+  justify-content: flex-end;
+  color: white;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+}
+
+.user-menu span,
+.user-menu-item {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0.3rem 0.5rem;
+  border-radius: 20px;
+}
+
+.user-menu span:hover,
+.user-menu-item:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+/* 서브 네비게이션 */
+.sub-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  padding: 0.8rem var(--content-padding);
+  box-sizing: border-box;
+  position: relative;
+  z-index: 2;
+}
+
+/* 검색바 */
+.search-bar {
+  margin-left: auto;
+  width: 400px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 25px;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.1);
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 12px 45px 12px 20px;
+  border: 2px solid rgba(255, 107, 107, 0.2);
+  border-radius: 25px;
+  font-size: 14px;
+  background: transparent;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.search-bar button {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(45deg, var(--crayon-primary), var(--crayon-secondary));
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+/* 로고 */
+.logo-container {
+  font-size: 2rem;
+  margin-right: 2rem;
+  padding: 0.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.logo-link {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 섹션 스타일 */
+.section {
+  margin: 0;
+  position: relative;
+}
+
+.section:first-child {
+  margin-top: 0;
+  z-index: 5;
+}
+
+/* 히어로 배너 */
+.hero-banner {
+  margin: 0;
+  padding: 0;
+  border: none;
+  position: relative;
+  z-index: 10;
+  background: linear-gradient(
+    to bottom,
+    var(--gradient-mid) 0%,
+    rgba(var(--primary-rgb), 0.6) 20%,
+    rgba(var(--primary-rgb), 0.4) 40%,
+    rgba(var(--primary-rgb), 0.2) 60%,
+    rgba(var(--primary-rgb), 0.1) 80%,
+    rgba(var(--primary-rgb), 0.05) 100%
+  );
+}
+
+.hero-banner::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100px;
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--primary-rgb), 0.05) 0%,
+    rgba(var(--primary-rgb), 0.1) 50%,
+    rgba(var(--primary-rgb), 0.2) 100%
+  );
+  pointer-events: none;
+}
+
+/* RecommendList 컨테이너 */
+.recommend-list-container {
+  position: relative;
+  padding-top: 2rem;
+  margin-top: -2rem;
+  z-index: 5;
+}
+
+/* ThemeList 컨테이너 */
+.theme-list-container {
+  position: relative;
+  background: linear-gradient(
+    to bottom,
+    var(--gradient-start) 0%,
+    var(--gradient-mid) 50%,
+    var(--gradient-end) 100%
+  );
+  padding-top: 2rem;
+  margin-top: -2rem;
+  z-index: 4;
+}
+
+/* 섹션 오버레이 */
+.section-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 100px;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.section-overlay.top {
+  top: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(var(--primary-rgb), 0.2) 0%,
+    transparent 100%
+  );
+}
+
+.section-overlay.bottom {
+  bottom: 0;
+  background: linear-gradient(
+    to top,
+    rgba(var(--primary-rgb), 0.2) 0%,
+    transparent 100%
+  );
+}
+
+/* 애니메이션 */
+@keyframes gradient {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+/* 페이지 전환 애니메이션 */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.page-transition-exit {
+  opacity: 1;
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1200px) {
+  .header-wrapper {
+    max-width: calc(100% - 32px);
+    margin: 0 auto;
+  }
+  
+  .container,
+  .user-menu,
+  .sub-navigation {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --content-padding: 0.75rem;
+  }
+
+  .navigation,
+  .user-menu,
+  .sub-navigation {
+    padding-left: var(--content-padding);
+    padding-right: var(--content-padding);
+  }
+
+  .search-bar {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .logo-container {
+    font-size: 1.6rem;
+    margin-right: 1.5rem;
+  }
+
+
+
+  .hero-banner::after {
+    height: 60px;
+  }
+
+  .section {
+    margin: 2rem 0;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --content-padding: 0.5rem;
+  }
+
+  .search-bar {
+    max-width: 200px;
+  }
+
+  .search-bar input {
+    padding: 10px 40px 10px 15px;
+    font-size: 13px;
+  }
+
+  .search-bar button {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+}

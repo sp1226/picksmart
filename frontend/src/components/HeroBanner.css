@@ -1,0 +1,198 @@
+/* HeroBanner.css */
+.hero-banner {
+  position: relative;
+  width: 100%;
+  height: 40vh;
+  overflow: hidden; /* visible에서 hidden으로 변경 */
+  background: transparent; /* rgba(255, 255, 255, 0.8)에서 transparent로 변경 */
+  margin-bottom: 2rem;
+}
+
+
+
+/* 페이지네이션 스타일 */
+.hero-banner.swiper-pagination {
+  position: absolute !important;
+  bottom: 20px !important;
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+/* 상단 페이드 효과 */
+.hero-banner::before {
+  content: '';
+  position: absolute;
+  top: -2px; /* 위쪽으로 살짝 확장 */
+  left: -2px; /* 왼쪽으로 확장 */
+  right: -2px; /* 오른쪽으로 확장 */
+  height: 80px; /* 높이 증가 */
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, 0.95) 30%,
+    rgba(255, 255, 255, 0.7) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  z-index: 3;
+  pointer-events: none;
+  clip-path: inset(-2px); /* 페이드 효과의 가장자리가 깔끔하게 보이도록 */
+}
+
+
+/* 하단 페이드 효과 */
+.hero-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; /* 아래쪽으로 살짝 확장 */
+  left: -2px; /* 왼쪽으로 확장 */
+  right: -2px; /* 오른쪽으로 확장 */
+  height: 80px; /* 높이 증가 */
+  background: linear-gradient(
+    to top,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(255, 255, 255, 0.95) 30%,
+    rgba(255, 255, 255, 0.7) 60%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  z-index: 3;
+  pointer-events: none;
+  clip-path: inset(-2px); /* 페이드 효과의 가장자리가 깔끔하게 보이도록 */
+}
+
+
+
+.swiper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* 현재 슬라이드 스타일 */
+.swiper-slide {
+  width: 100%;
+  height: 100%;
+  opacity: 0.3;
+  transform: scale(0.8);
+  transition: all 0.4s ease;
+  cursor: pointer;
+  overflow: hidden; /* 추가 */
+}
+
+
+
+/* 활성화된 현재 슬라이드 */
+.swiper-slide-active {
+  opacity: 1;
+  transform: scale(1);
+  z-index: 2;
+}
+
+/* 이전/다음 슬라이드 (부드러운 흐림 효과) */
+.swiper-slide-prev,
+.swiper-slide-next {
+  opacity: 0.4;
+  transform: scale(0.85);
+  filter: blur(3px);
+  transition: all 0.4s ease;
+}
+
+/* 배너 이미지 컨테이너 */
+.hero-slide {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  
+}
+
+.banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: all 0.4s ease;
+}
+
+.banner-swiper {
+  overflow: hidden; /* overflow: hidden을 visible로 변경 */
+}
+
+
+
+/* 불릿 스타일 */
+.swiper-pagination-bullet {
+  width: 8px;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  opacity: 0.5;
+  margin: 0 5px !important;
+  transition: all 0.3s ease;
+}
+
+.swiper-pagination-bullet-active {
+  background: rgba(0, 0, 0, 0.6);
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+/* 동적 불릿 스타일 */
+.swiper-pagination-bullets-dynamic {
+  overflow: hidden;
+  font-size: 0;
+}
+
+.swiper-pagination-bullets-dynamic .swiper-pagination-bullet {
+  transform: scale(0.33);
+  position: relative;
+}
+
+.swiper-pagination-bullets-dynamic .swiper-pagination-bullet-active {
+  transform: scale(1);
+}
+
+.swiper-pagination-bullets-dynamic .swiper-pagination-bullet-active-main {
+  transform: scale(1);
+}
+
+.swiper-pagination-bullets-dynamic .swiper-pagination-bullet-active-prev,
+.swiper-pagination-bullets-dynamic .swiper-pagination-bullet-active-next {
+  transform: scale(0.66);
+}
+
+.swiper-pagination-bullets-dynamic .swiper-pagination-bullet-active-prev-prev,
+.swiper-pagination-bullets-dynamic .swiper-pagination-bullet-active-next-next {
+  transform: scale(0.33);
+}
+
+/* 반응형 조정 */
+@media (max-width: 768px) {
+  .hero-banner {
+    height: 30vh;
+  }
+  
+  .hero-banner::before,
+  .hero-banner::after {
+    height: 30px;
+  }
+  
+  .swiper-button-next,
+  .swiper-button-prev {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .swiper-button-next:after,
+  .swiper-button-prev:after {
+    font-size: 14px;
+  }
+
+  .swiper-pagination-bullet {
+    width: 8px;
+    height: 8px;
+    margin: 0 4px !important;
+  }
+}
